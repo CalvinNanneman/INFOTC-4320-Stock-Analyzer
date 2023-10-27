@@ -49,7 +49,7 @@ while True:
 
 # Send the user input to the Alpha Vantage API
 base_url = "https://www.alphavantage.co/query"
-api_key = 'NXIYN25QRQTO36XP'  # Replace with your actual Alpha Vantage API key
+api_key = 'YOUR_API_KEY'  # Replace with your actual Alpha Vantage API key
 
 params = {
     'function': 'TIME_SERIES_' + ['INTRADAY', 'DAILY', 'WEEKLY', 'MONTHLY'][int(time_series) - 1],
