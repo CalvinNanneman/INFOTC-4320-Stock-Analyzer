@@ -1,32 +1,47 @@
-import requests
-import pygal
-import html
 from datetime import datetime
-from xml.sax.saxutils import unescape
+import requests
+from lxml import html
+import pygal
+import webbrowser
 
-# Get user input
-# Stock symbol
+#Get user input-------------------
+
+#get stock symbol
 stock_symbol = input("Enter the stock symbol: ")
 
-# Chart type (Bar or Line)
+#get chart type, line or bar
 while True:
-    print("\nChart Types\n----------------\n1) Bar\n2) Line\n")
+    print("\nChart Types\n ----------------\n 1) Bar \n 2) Line\n")
     chart_type = input("Enter 1 for Bar chart, 2 for Line chart: ")
     if chart_type in ["1", "2"]:
         break
     else:
         print("\nInvalid input\n")
 
-# Time series function (Intraday, Daily, Weekly, Monthly)
+#get time series function, intraday, daily, weekly, or monthly
 while True:
-    print("\nTime Series\n--------------------------------\n1) Intraday\n2) Daily\n3) Weekly\n4) Monthly\n")
-    time_series = input("Enter time series (1, 2, 3, 4): ")
-    if time_series in ["1", "2", "3", "4"]:
+    print("\nTime Series \n--------------------------------\n 1) Intraday\n 2) Daily\n 3) Weekly\n 4) Monthly\n")
+    u_time_series = input("Enter time series (1,2,3,4): ")
+    if u_time_series in ["1","2","3","4"]:
         break
-    else:
-        print("\nInvalid input\n")
+    else: print("\nInvalid Input")
 
-# Start date
+
+if u_time_series == "1":
+    time_series = "TIME_SERIES_INTRADAY"
+    time_series_output = "Time Series (5min)"
+if u_time_series == "2":
+    time_series = "TIME_SERIES_DAILY"
+    time_series_output = "Time Series (Daily)"
+if u_time_series == "3":
+    time_series = "TIME_SERIES_WEEKLY"
+    time_series_output = "Weekly Time Series"
+if u_time_series == "4":
+    time_series = "TIME_SERIES_MONTHLY"
+    time_series_output = "Monthly Time Series"
+
+
+#get start date
 while True:
     start_date = input("\nEnter the start date (YYYY-MM-DD): ")
     try:
@@ -35,82 +50,68 @@ while True:
     except ValueError:
         print("\nInvalid date format. Please use YYYY-MM-DD format.")
 
-# End date
+
+#get end date
 while True:
     end_date = input("\nEnter the end date in YYYY-MM-DD format: ")
     try:
-        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
-        if end_date_obj >= datetime.strptime(start_date, '%Y-%m-%d'):
+        datetime.strptime(end_date, '%Y-%m-%d')
+        if end_date >= start_date:
             break
         else:
             print("The end date should not be before the begin date.")
     except ValueError:
         print("\nInvalid date format. Please use YYYY-MM-DD format.")
 
-# Send the user input to the Alpha Vantage API
-base_url = "https://www.alphavantage.co/query"
-api_key = 'YOUR_API_KEY'  # Replace with your actual Alpha Vantage API key
 
-params = {
-    'function': 'TIME_SERIES_' + ['INTRADAY', 'DAILY', 'WEEKLY', 'MONTHLY'][int(time_series) - 1],
-    'symbol': stock_symbol,
-    'apikey': api_key,
-}
+#----user input is gathered, to be sent to API ------------
+print(stock_symbol, chart_type, time_series, start_date, end_date)
 
-response = requests.get(base_url, params=params)
+
+
+api_key = 'CRF5E6TEAFQOQWZY'
+
+url = f'https://www.alphavantage.co/query?function={time_series}&symbol={stock_symbol}&apikey={api_key}'
+
+response = requests.get(url)
 data = response.json()
+print(data)
 
-# Extract data for the chart
-if 'Time Series (Daily)' in data:
-    time_series_data = data['Time Series (Daily)']
-    time_series_label = 'Daily'
+# Parse the API response
+tree = html.fromstring(response.text)
 
-elif 'Time Series (15min)' in data:
-    time_series_data = data['Time Series (15min)']
-    time_series_label = '15-Min'
-
-# Prepare data for the chart
-dates = []
-prices = []
-
-for date, info in time_series_data.items():
-    if start_date <= date <= end_date:
-        dates.append(date)
-        prices.append(float(info['4. close']))
-
-dates.reverse()
-prices.reverse()
-
-# Generate the chart
-chart = pygal.Line(x_label_rotation=20)
-chart.title = f'{stock_symbol} Stock Prices ({time_series_label})'
-chart.x_labels = dates
-chart.add('Close Price', prices)
-
-# Function to generate HTML content for the chart
-def generate_html_content(chart):
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-    </head>
-    <body>
-    {}
-    </body>
-    </html>
-    """.format(chart.render())
-    return html_content
-
-# Open the chart in the default web browser
-with open("stock_chart.html", "w") as html_file:
-    html_content = generate_html_content(chart)
-    html_file.write(html_content)
-
-# Optionally, open the HTML chart in the default web browser
-import webbrowser
-webbrowser.open('stock_chart.html')
+closing_prices = []
 
 
 
 
+for date, values in data[time_series_output].items():
+    closing_prices.append(float(values['4. close']))
 
+print(closing_prices)
+
+# Create a line chart
+if chart_type == "2":
+    chart = pygal.Line()
+    chart.title = f'{stock_symbol} Stock Prices'
+    chart.x_labels = reversed([str(i) for i in range(1, len(closing_prices) + 1)])
+    chart.add('Closing Price', [float(price) for price in closing_prices])
+
+    # Render the chart to an SVG file
+    chart.render_to_file('stock_chart.svg')
+
+
+    webbrowser.open('stock_chart.svg')
+
+#create bar chart
+if chart_type == "1":
+    chart = pygal.Bar()
+    chart.title = f'{stock_symbol} Stock Prices'
+    chart.x_labels = reversed([str(i) for i in range(1, len(closing_prices) + 1)])
+    chart.add('Closing Price', [float(price) for price in closing_prices])
+
+    # Render the chart to an SVG file
+    chart.render_to_file('stock_chart.svg')
+
+
+    webbrowser.open('stock_chart.svg')
