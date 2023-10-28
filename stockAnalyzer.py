@@ -1,8 +1,6 @@
 import requests
 import pygal
-import html
 from datetime import datetime
-from xml.sax.saxutils import unescape
 
 # Get user input
 # Stock symbol
@@ -52,7 +50,7 @@ base_url = "https://www.alphavantage.co/query"
 api_key = 'CRF5E6TEAFQOQWZY'  # Replace with your actual Alpha Vantage API key
 
 params = {
-    'function': 'TIME_SERIES_' + ['INTRADAY', 'DAILY', 'WEEKLY', 'MONTHLY'][int(time_series) - 1],
+    'function': ['TIME_SERIES_INTRADAY', 'TIME_SERIES_DAILY', 'TIME_SERIES_WEEKLY', 'TIME_SERIES_MONTHLY'][int(time_series) - 1],
     'symbol': stock_symbol,
     'apikey': api_key,
 }
@@ -60,14 +58,22 @@ params = {
 response = requests.get(base_url, params=params)
 data = response.json()
 
-# Extract data for the chart
-if 'Time Series (Daily)' in data:
-    time_series_data = data['Time Series (Daily)']
-    time_series_label = 'Daily'
+# Map time series options to their keys in the JSON response
+time_series_options = {
+    '1': 'Time Series (15min)',  # Intraday
+    '2': 'Time Series (Daily)',
+    '3': 'Weekly Time Series',
+    '4': 'Monthly Time Series'
+}
 
-elif 'Time Series (15min)' in data:
-    time_series_data = data['Time Series (15min)']
-    time_series_label = '15-Min'
+selected_time_series = time_series_options[time_series]
+
+if selected_time_series in data:
+    time_series_data = data[selected_time_series]
+    time_series_label = ['Intraday', 'Daily', 'Weekly', 'Monthly'][int(time_series) - 1]
+else:
+    print("Selected time series data not found in response.")
+    exit()
 
 # Prepare data for the chart
 dates = []
@@ -84,6 +90,12 @@ prices.reverse()
 # Generate the chart
 chart = pygal.Line(x_label_rotation=20)
 chart.title = f'{stock_symbol} Stock Prices ({time_series_label})'
+
+if time_series_label == 'Intraday':
+    chart.y_title = 'Price (USD)'
+else:
+    chart.y_title = 'Close Price (USD)'
+
 chart.x_labels = dates
 chart.add('Close Price', prices)
 
@@ -109,8 +121,4 @@ with open("stock_chart.html", "w") as html_file:
 # Optionally, open the HTML chart in the default web browser
 import webbrowser
 webbrowser.open('stock_chart.html')
-
-
-
-
-    
+   
