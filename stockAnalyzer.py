@@ -77,10 +77,22 @@ print(data)
 tree = html.fromstring(response.text)
 
 closing_prices = []
+
+#-----------------------------------------------------------------------------------------------------------------------------------------
+# Below needs updated to work dynamically with intra day, daily, weekly, and monthly. I think we just need to change data['Time Series (Daily)'] 
+# to a variable that is the correct string based what user input was
+#-----------------------------------------------------------------------------------------------------------------------------------------
+
 for date, values in data['Time Series (Daily)'].items():
     closing_prices.append(float(values['4. close']))
 
 print(closing_prices)
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------
+#Needs to check variable chart_type to see if bar chart or line chart should be rendered, the code below makes a line chart successfully
+#-----------------------------------------------------------------------------------------------------------------------------------------
+
 
 # Create a line chart
 chart = pygal.Line()
@@ -88,6 +100,9 @@ chart.title = f'{stock_symbol} Stock Prices'
 chart.x_labels = reversed([str(i) for i in range(1, len(closing_prices) + 1)])
 chart.add('Closing Price', [float(price) for price in closing_prices])
 
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------
 # Render the chart to an SVG file
 chart.render_to_file('stock_chart.svg')
 
